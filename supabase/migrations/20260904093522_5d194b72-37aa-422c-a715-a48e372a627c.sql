@@ -1,0 +1,3 @@
+CREATE POLICY "Users can read their own plant photos" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'plant-photos' AND auth.uid()::text = (storage.foldername(name))[1]);
+CREATE POLICY "Users can upload their own plant photos" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'plant-photos' AND auth.uid()::text = (storage.foldername(name))[1]);
+CREATE POLICY "Users can delete their own plant photos" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'plant-photos' AND auth.uid()::text = (storage.foldername(name))[1]);
