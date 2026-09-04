@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Camera,
   ImageUp,
@@ -17,12 +17,18 @@ import {
   RotateCcw,
   Loader2,
   ShieldAlert,
+  History,
+  LogIn,
+  LogOut,
+  Check,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { identifyPlant, type PlantResult } from "@/lib/plant.functions";
+import { savePlantScan } from "@/lib/plant-storage";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -55,12 +61,34 @@ const CARE_ITEMS = [
 
 function Index() {
   const [preview, setPreview] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const identify = useServerFn(identifyPlant);
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUserEmail(data.session?.user.email ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        setUserEmail(session?.user.email ?? null);
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
   const mutation = useMutation<PlantResult, Error, string>({
     mutationFn: (imageDataUrl) => identify({ data: { imageDataUrl } }),
+    onSuccess: async (result, imageDataUrl) => {
+      if (!result.isPlant) return;
+      setSaveState("saving");
+      try {
+        const saved = await savePlantScan(result, imageDataUrl);
+        setSaveState(saved ? "saved" : "idle");
+      } catch {
+        setSaveState("error");
+      }
+    },
   });
 
   const handleFile = (file?: File | null) => {
@@ -77,6 +105,7 @@ function Index() {
   const reset = () => {
     setPreview(null);
     mutation.reset();
+    setSaveState("idle");
     if (cameraRef.current) cameraRef.current.value = "";
     if (fileRef.current) fileRef.current.value = "";
   };
@@ -89,10 +118,34 @@ function Index() {
         <span className="leaf-gradient flex size-11 items-center justify-center rounded-2xl text-primary-foreground shadow-[var(--shadow-soft)]">
           <Leaf className="size-6" />
         </span>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-semibold">BitkiLens</h1>
           <p className="text-sm text-muted-foreground">Fotoğrafla bitkini tanı</p>
         </div>
+        {userEmail ? (
+          <div className="flex gap-1">
+            <Button asChild variant="ghost" size="icon" className="rounded-xl">
+              <Link to="/gecmis" aria-label="Bitki geçmişim">
+                <History className="size-5" />
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl"
+              aria-label="Çıkış yap"
+              onClick={() => supabase.auth.signOut()}
+            >
+              <LogOut className="size-5" />
+            </Button>
+          </div>
+        ) : (
+          <Button asChild variant="ghost" size="sm" className="rounded-xl">
+            <Link to="/auth">
+              <LogIn className="size-4" /> Giriş
+            </Link>
+          </Button>
+        )}
       </header>
 
       <input
@@ -168,6 +221,38 @@ function Index() {
 
       {result?.isPlant && (
         <div className="mt-5 space-y-4">
+          <div className="surface-card flex items-center gap-3 p-4 text-sm">
+            {saveState === "saving" && (
+              <>
+                <Loader2 className="size-4 animate-spin text-primary" />
+                <span className="text-muted-foreground">Kaydediliyor…</span>
+              </>
+            )}
+            {saveState === "saved" && (
+              <>
+                <Check className="size-4 text-primary" />
+                <span className="text-muted-foreground">Bitki geçmişine kaydedildi.</span>
+                <Link to="/gecmis" className="ml-auto text-primary underline-offset-4 hover:underline">
+                  Geçmiş
+                </Link>
+              </>
+            )}
+            {saveState === "error" && (
+              <>
+                <AlertTriangle className="size-4 text-destructive" />
+                <span className="text-muted-foreground">Kayıt sırasında bir sorun oldu.</span>
+              </>
+            )}
+            {saveState === "idle" && (
+              <>
+                <History className="size-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Kaydetmek için</span>
+                <Link to="/auth" className="text-primary underline-offset-4 hover:underline">
+                  giriş yap
+                </Link>
+              </>
+            )}
+          </div>
           <section className="surface-card p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
