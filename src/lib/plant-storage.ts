@@ -15,7 +15,7 @@ export type PlantScanRow = {
 };
 
 function dataUrlToBlob(dataUrl: string) {
-  const [meta, base64] = dataUrl.split(",");
+  const [meta = "", base64 = ""] = dataUrl.split(",");
   const mime = meta.match(/data:(.*?);/)?.[1] ?? "image/jpeg";
   const bin = atob(base64);
   const bytes = new Uint8Array(bin.length);
@@ -54,7 +54,7 @@ export async function savePlantScan(result: PlantResult, imageDataUrl: string) {
       confidence: result.confidence,
       difficulty: result.difficulty,
       summary: result.summary,
-      details: result as unknown as Record<string, unknown>,
+      details: JSON.parse(JSON.stringify(result)),
     })
     .select("id")
     .single();
