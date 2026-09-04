@@ -125,7 +125,7 @@ function Index() {
         {userEmail ? (
           <div className="flex gap-1">
             <Button asChild variant="ghost" size="icon" className="rounded-xl">
-              <Link to="/_authenticated/gecmis" aria-label="Bitki geçmişim">
+              <Link to="/gecmis" aria-label="Bitki geçmişim">
                 <History className="size-5" />
               </Link>
             </Button>
@@ -232,7 +232,7 @@ function Index() {
               <>
                 <Check className="size-4 text-primary" />
                 <span className="text-muted-foreground">Bitki geçmişine kaydedildi.</span>
-                <Link to="/_authenticated/gecmis" className="ml-auto text-primary underline-offset-4 hover:underline">
+                <Link to="/gecmis" className="ml-auto text-primary underline-offset-4 hover:underline">
                   Geçmiş
                 </Link>
               </>
