@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      plant_scans: {
+        Row: {
+          common_name: string
+          confidence: number | null
+          created_at: string
+          details: Json
+          difficulty: string | null
+          family: string | null
+          id: string
+          image_url: string | null
+          scientific_name: string | null
+          summary: string | null
+          user_id: string
+        }
+        Insert: {
+          common_name: string
+          confidence?: number | null
+          created_at?: string
+          details?: Json
+          difficulty?: string | null
+          family?: string | null
+          id?: string
+          image_url?: string | null
+          scientific_name?: string | null
+          summary?: string | null
+          user_id: string
+        }
+        Update: {
+          common_name?: string
+          confidence?: number | null
+          created_at?: string
+          details?: Json
+          difficulty?: string | null
+          family?: string | null
+          id?: string
+          image_url?: string | null
+          scientific_name?: string | null
+          summary?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
