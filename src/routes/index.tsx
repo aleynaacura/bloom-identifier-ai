@@ -29,6 +29,7 @@ import { Progress } from "@/components/ui/progress";
 import { identifyPlant, type PlantResult } from "@/lib/plant.functions";
 import { savePlantScan } from "@/lib/plant-storage";
 import { supabase } from "@/integrations/supabase/client";
+import { CameraCapture } from "@/components/CameraCapture";
 
 export const Route = createFileRoute("/")({
   head: () => ({
