@@ -64,7 +64,7 @@ function Index() {
   const [preview, setPreview] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const cameraRef = useRef<HTMLInputElement>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const identify = useServerFn(identifyPlant);
 
@@ -107,7 +107,6 @@ function Index() {
     setPreview(null);
     mutation.reset();
     setSaveState("idle");
-    if (cameraRef.current) cameraRef.current.value = "";
     if (fileRef.current) fileRef.current.value = "";
   };
 
