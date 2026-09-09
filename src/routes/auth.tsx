@@ -187,9 +187,23 @@ function AuthPage() {
 
         {message && <p className="mt-4 text-sm text-muted-foreground">{message}</p>}
 
+        {needsConfirm && (
+          <button
+            className="mt-3 w-full text-sm text-primary underline-offset-4 hover:underline"
+            onClick={resend}
+            disabled={loading}
+          >
+            Onay e-postasını yeniden gönder
+          </button>
+        )}
+
         <button
           className="mt-5 w-full text-sm text-primary underline-offset-4 hover:underline"
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+          onClick={() => {
+            setMode(mode === "signin" ? "signup" : "signin");
+            setMessage(null);
+            setNeedsConfirm(false);
+          }}
         >
           {mode === "signin" ? "Hesabın yok mu? Kayıt ol" : "Zaten hesabın var mı? Giriş yap"}
         </button>
