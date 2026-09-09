@@ -187,7 +187,7 @@ function Index() {
         <Button
           size="lg"
           className="leaf-gradient h-14 rounded-2xl text-base"
-          onClick={() => cameraRef.current?.click()}
+          onClick={() => setCameraOpen(true)}
           disabled={mutation.isPending}
         >
           <Camera className="size-5" /> Fotoğraf Çek
