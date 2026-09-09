@@ -29,6 +29,7 @@ import { Progress } from "@/components/ui/progress";
 import { identifyPlant, type PlantResult } from "@/lib/plant.functions";
 import { savePlantScan } from "@/lib/plant-storage";
 import { supabase } from "@/integrations/supabase/client";
+import { CameraCapture } from "@/components/CameraCapture";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -63,7 +64,7 @@ function Index() {
   const [preview, setPreview] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const cameraRef = useRef<HTMLInputElement>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const identify = useServerFn(identifyPlant);
 
@@ -106,7 +107,6 @@ function Index() {
     setPreview(null);
     mutation.reset();
     setSaveState("idle");
-    if (cameraRef.current) cameraRef.current.value = "";
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -148,14 +148,18 @@ function Index() {
         )}
       </header>
 
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0])}
-      />
+      {cameraOpen && (
+        <CameraCapture
+          onClose={() => setCameraOpen(false)}
+          onCapture={(dataUrl) => {
+            setCameraOpen(false);
+            setPreview(dataUrl);
+            setSaveState("idle");
+            mutation.mutate(dataUrl);
+          }}
+        />
+      )}
+
       <input
         ref={fileRef}
         type="file"
@@ -183,7 +187,7 @@ function Index() {
         <Button
           size="lg"
           className="leaf-gradient h-14 rounded-2xl text-base"
-          onClick={() => cameraRef.current?.click()}
+          onClick={() => setCameraOpen(true)}
           disabled={mutation.isPending}
         >
           <Camera className="size-5" /> Fotoğraf Çek

@@ -33,12 +33,38 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/" });
     });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) navigate({ to: "/" });
+    });
+    return () => sub.subscription.unsubscribe();
   }, [navigate]);
+
+  const translateError = (err: unknown) => {
+    const raw = err instanceof Error ? err.message.toLowerCase() : "";
+    const code = (err as { code?: string } | null)?.code ?? "";
+    if (code === "email_not_confirmed" || raw.includes("not confirmed")) {
+      return "E-postan henüz onaylanmadı. Gelen kutunu kontrol et.";
+    }
+    if (code === "invalid_credentials" || raw.includes("invalid login credentials")) {
+      return "E-posta veya şifre hatalı.";
+    }
+    if (code === "user_already_exists" || raw.includes("already registered")) {
+      return "Bu e-posta ile bir hesap zaten var. Giriş yapmayı dene.";
+    }
+    if (code === "weak_password" || raw.includes("password should be")) {
+      return "Şifre en az 6 karakter olmalı.";
+    }
+    if (raw.includes("rate limit") || raw.includes("too many")) {
+      return "Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar dene.";
+    }
+    return "Bir hata oluştu. Lütfen tekrar dene.";
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,21 +72,50 @@ function AuthPage() {
     setMessage(null);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
-        setMessage("Kayıt başarılı! Giriş yapabilirsin.");
-        setMode("signin");
+        if (data.session) {
+          navigate({ to: "/" });
+          return;
+        }
+        setNeedsConfirm(true);
+        setMessage(
+          "E-postana bir onay bağlantısı gönderdik. Bağlantıya tıkladıktan sonra giriş yapabilirsin.",
+        );
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         navigate({ to: "/" });
       }
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Bir hata oluştu.");
+      const text = translateError(err);
+      setMessage(text);
+      if (text.startsWith("E-postan henüz")) setNeedsConfirm(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resend = async () => {
+    if (!email) {
+      setMessage("Önce e-posta adresini yaz.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      setMessage("Onay e-postası yeniden gönderildi. Gelen kutunu kontrol et.");
+    } catch (err) {
+      setMessage(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -132,9 +187,23 @@ function AuthPage() {
 
         {message && <p className="mt-4 text-sm text-muted-foreground">{message}</p>}
 
+        {needsConfirm && (
+          <button
+            className="mt-3 w-full text-sm text-primary underline-offset-4 hover:underline"
+            onClick={resend}
+            disabled={loading}
+          >
+            Onay e-postasını yeniden gönder
+          </button>
+        )}
+
         <button
           className="mt-5 w-full text-sm text-primary underline-offset-4 hover:underline"
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+          onClick={() => {
+            setMode(mode === "signin" ? "signup" : "signin");
+            setMessage(null);
+            setNeedsConfirm(false);
+          }}
         >
           {mode === "signin" ? "Hesabın yok mu? Kayıt ol" : "Zaten hesabın var mı? Giriş yap"}
         </button>
